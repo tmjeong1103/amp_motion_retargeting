@@ -1,0 +1,26 @@
+{
+    "joi_mapping": {
+        "Hips": "pelvis",
+        "Spine1": "utorso",
+        "Head": "head", 
+
+        "LeftArm": "l_scap",
+        "LeftForeArm": "l_larm",
+        "LeftHand": "l_hand",
+        "RightArm": "r_scap",
+        "RightForeArm": "r_larm",
+        "RightHand": "r_hand",
+
+        "LeftUpLeg": "l_lglut",
+        "LeftLeg": "l_lleg",
+        "LeftFoot": "l_foot",
+        "RightUpLeg": "r_lglut",
+        "RightLeg": "r_lleg",
+        "RightFoot": "r_foot"
+    },
+    "rotation": [0, 0, 0.7071068, 0.7071068],
+    "scale": 0.005,
+	"root_height_offset": 0.05,
+	"trim_frame_beg": 75,
+	"trim_frame_end": 372
+}
