@@ -937,50 +937,41 @@ class SkeletonState(Serializable):
         source_tpose = source_tpose._transfer_to(new_skeleton_tree)
         source_state = self._transfer_to(new_skeleton_tree)
         print("source_tpose_joi")
-        plot_skeleton_state(source_tpose)
 
-        # mapping to robot skeleton (local rotation)
+        keep_root_translate = source_state.root_translation
+        # mapping to robot skeleton (local)
         source_tpose = source_tpose._remapped_to(joint_mapping, target_skeleton_tree)
         source_state = source_state._remapped_to(joint_mapping, target_skeleton_tree)
-        plot_skeleton_state(source_tpose)
+        # plot_skeleton_state(source_tpose)
+        ## OK line
 
         # STEP 2: Rotate the source to align with the target
         new_local_rotation = source_tpose.local_rotation.clone()
         new_local_rotation[..., 0, :] = quat_mul_norm(
             rotation_to_target_skeleton, source_tpose.local_rotation[..., 0, :]
         )
-
         source_tpose = SkeletonState.from_rotation_and_root_translation(
             skeleton_tree=source_tpose.skeleton_tree,
             r=new_local_rotation,
             t=quat_rotate(rotation_to_target_skeleton, source_tpose.root_translation),
             is_local=True,
         )
+        # plot_skeleton_state(source_tpose)
+        # OK!
 
-        new_local_rotation = source_state.local_rotation.clone()
-        new_local_rotation[..., 0, :] = quat_mul_norm(
-            rotation_to_target_skeleton, source_state.local_rotation[..., 0, :]
-        )
-        source_state = SkeletonState.from_rotation_and_root_translation(
-            skeleton_tree=source_state.skeleton_tree,
-            r=new_local_rotation,
-            t=quat_rotate(rotation_to_target_skeleton, source_state.root_translation),
-            is_local=True,
-        )
-        # target_motion = SkeletonMotion.from_skeleton_state(source_state, fps=100)
-        # plot_skeleton_motion_interactive(target_motion)
-
-        # STEP 3: Normalize to match the target scale
-        scale_to_target_skeleton = la.norm(target_tpose.root_translation.numpy())/\
-            la.norm(source_tpose.root_translation.numpy())
+        # STEP 3: Scaling root trajectory
+        # scale_to_target_skeleton = la.norm(target_tpose.root_translation.numpy())/\
+        #     la.norm(source_tpose.root_translation.numpy()) #### Bug........ scale is 0 .....
+        scale_to_target_skeleton = 0.005
         root_translation_diff = (
-            source_state.root_translation - source_tpose.root_translation
+            keep_root_translate - source_tpose.root_translation
         ) * scale_to_target_skeleton
 
         # STEP 4: the global rotation from source state relative to source tpose and
         # re-apply to the target
         current_skeleton_tree = source_state.skeleton_tree
         target_tpose_global_rotation = source_state.global_rotation[0, :].clone()
+
         for current_index, name in enumerate(current_skeleton_tree):
             if name in target_tpose.skeleton_tree:
                 target_tpose_global_rotation[
@@ -995,19 +986,115 @@ class SkeletonState(Serializable):
         new_global_rotation = quat_mul_norm(
             global_rotation_diff, target_tpose_global_rotation
         )
+        # OK
 
-        # STEP 5: Putting 3 and 4 together
-        current_skeleton_tree = source_state.skeleton_tree
+        # Step 5: We have to fill other joint 15 -> 29
         shape = source_state.global_rotation.shape[:-1]
         shape = shape[:-1] + target_tpose.global_rotation.shape[-2:-1]
         new_global_rotation_output = quat_identity(shape)
-        for current_index, name in enumerate(target_skeleton_tree):
-            while name not in current_skeleton_tree:
-                name = target_skeleton_tree.parent_of(name)
-            parent_index = current_skeleton_tree.index(name)
-            new_global_rotation_output[:, current_index, :] = new_global_rotation[
-                :, parent_index, :
-            ]
+        for current_index, name in enumerate(current_skeleton_tree):
+            # 00 pelvis -> 00 pelvis
+            if current_index == 0:
+                new_global_rotation_output[:, 0, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 01 utorso -> 01~03 ltorso, mtorso, utorso
+            if current_index == 1:
+                new_global_rotation_output[:, 1, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 2, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 3, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 02 l_scap -> 04~05 l_clav, l_scap
+            if current_index == 2:
+                new_global_rotation_output[:, 4, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 5, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 03 l_larm -> 06~07 l_uarm, l_larm
+            if current_index == 3:
+                new_global_rotation_output[:, 6, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 7, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 04 l_hand -> 08~09 l_farm, l_hand
+            if current_index == 4:
+                new_global_rotation_output[:, 8, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 9, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 05 head ->  10 head
+            if current_index == 5:
+                new_global_rotation_output[:, 10, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 06 r_scap -> 11~12 r_clav, r_scap
+            if current_index == 6:
+                new_global_rotation_output[:, 11, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 12, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 07 r_larm -> 13~14 r_uarm, r_larm
+            if current_index == 7:
+                new_global_rotation_output[:, 13, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 14, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 08 r_hand -> 15~16 r_farm, r_hand
+            if current_index == 8:
+                new_global_rotation_output[:, 15, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 16, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 09 l_lglut -> 17~18 l_uglut, l_lglut
+            if current_index == 9:
+                new_global_rotation_output[:, 17, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 18, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 10 l_lleg -> 19~20 l_uleg, l_lleg
+            if current_index == 10:
+                new_global_rotation_output[:, 19, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 20, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 11 l_foot -> 21~22 l_talus, l_foot
+            if current_index == 11:
+                new_global_rotation_output[:, 21, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 22, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 12 r_lglut -> 23~24 r_uglut, r_lglut
+            if current_index == 12:
+                new_global_rotation_output[:, 23, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 24, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 13 r_lleg -> 25~26 r_uleg, r_lleg
+            if current_index == 13:
+                new_global_rotation_output[:, 25, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 26, :] = \
+                    new_global_rotation[:, current_index, :]
+            # 14 r_foot -> 27~28 r_talus, r_foot
+            if current_index == 14:
+                new_global_rotation_output[:, 27, :] = \
+                    new_global_rotation[:, current_index, :]
+                new_global_rotation_output[:, 28, :] = \
+                    new_global_rotation[:, current_index, :]
+        
+        # # STEP 5: Putting 3 and 4 together
+        # current_skeleton_tree = source_state.skeleton_tree
+        # shape = source_state.global_rotation.shape[:-1]
+        # shape = shape[:-1] + target_tpose.global_rotation.shape[-2:-1]
+        # new_global_rotation_output = quat_identity(shape)
+        # for current_index, name in enumerate(target_skeleton_tree):
+        #     while name not in current_skeleton_tree:
+        #         name = target_skeleton_tree.parent_of(name)
+        #     parent_index = current_skeleton_tree.index(name)
+        #     new_global_rotation_output[:, current_index, :] = new_global_rotation[
+        #         :, parent_index, :
+        #     ]
+
         # we must add another joint target of robot
         source_state = SkeletonState.from_rotation_and_root_translation(
             skeleton_tree=target_skeleton_tree,

@@ -4,23 +4,25 @@
         "Spine1": "utorso",
         "Head": "head", 
 
-        "LeftArm": "l_scap",
-        "LeftForeArm": "l_larm",
-        "LeftHand": "l_hand",
-        "RightArm": "r_scap",
-        "RightForeArm": "r_larm",
-        "RightHand": "r_hand",
+        "LeftArm": "l_clav",
+        "LeftForeArm": "l_uarm",
+        "LeftHand": "l_farm",
+        
+        "RightArm": "r_clav",
+        "RightForeArm": "r_uarm",
+        "RightHand": "r_farm",
 
-        "LeftUpLeg": "l_lglut",
+        "LeftUpLeg": "l_uglut",
         "LeftLeg": "l_lleg",
-        "LeftFoot": "l_foot",
-        "RightUpLeg": "r_lglut",
+        "LeftFoot": "l_talus",
+
+        "RightUpLeg": "r_uglut",
         "RightLeg": "r_lleg",
-        "RightFoot": "r_foot"
+        "RightFoot": "r_talus"
     },
     "rotation": [0, 0, 0.7071068, 0.7071068],
     "scale": 0.005,
 	"root_height_offset": 0.05,
-	"trim_frame_beg": 75,
-	"trim_frame_end": 372
+	"trim_frame_beg": 1,
+	"trim_frame_end": 1301
 }

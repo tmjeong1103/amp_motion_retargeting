@@ -44,10 +44,11 @@ skeleton = SkeletonTree.from_mjcf("mjcf/atlas.xml")
 
 # generate zero rotation pose
 zero_pose = SkeletonState.zero_pose(skeleton)
+plot_skeleton_state(zero_pose)
 
 # adjust pose into a T Pose
-translation = zero_pose.root_translation
-translation += torch.tensor([0, 0, 0.9])
+# translation = zero_pose.root_translation
+# translation += torch.tensor([0, 0, 0.9])
 
 # save and visualize T-pose
 zero_pose.to_file(config.target_tpose_path)
